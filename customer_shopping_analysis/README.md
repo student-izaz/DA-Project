@@ -52,6 +52,7 @@ The goal of this project is to simulate a corporate-grade end-to-end data analyt
       - Open **customer_behavior_dashboard.pbix**
    
       - Create interactive dashboard in Power BI
+      ![alt text]({E12A9AF5-A480-4678-B56A-36C934CF4A8B}.png)
   
 6. **Create Project Report and Presentation**
 
