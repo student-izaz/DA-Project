@@ -23,8 +23,7 @@ The goal of this project is to simulate a corporate-grade end-to-end data analyt
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/amlanmohanty1/customer-trends-data-analysis-SQL-Python-PowerBI.git
-   cd customer-trends-data-analysis-SQL-Python-PowerBI
+   git clone https://github.com/student-izaz/DA-Project.git
    ```
 2. **Open Customer_Shopping_Behavior_Analysis.ipynb notebook**
 
@@ -59,19 +58,8 @@ The goal of this project is to simulate a corporate-grade end-to-end data analyt
       - Create project report
    
       - Build presentation deck using Gamma AI
-      
+
       [https://www.popai.pro/ppt-share?shareKey=fd65f55c18a33e1e523ba87fd297606260603d1703ab51e1c4b54f6f517584c6&utm_source=presentationsharepage]
-  
-7. **Follow along with the YouTube video for full walkthrough. 👨‍💼**
-
-
-## 📜 License
-
-MIT — feel free to fork, star, and use in your portfolio.
-
-## 👨‍💻 About the Author
-Hey, I’m Amlan Mohanty, a Data Analyst & Content Creator.
-I break down complex data topics into simple, practical content that actually helps you land a job.
 
  ### 🚀 Stay Connected
 
