@@ -23,7 +23,7 @@ The goal of this project is to simulate a corporate-grade end-to-end data analyt
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/student-izaz/DA-Project.git
+   git clone customer_shopping_analysiscustomer_shopping_analysis
    ```
 2. **Open Customer_Shopping_Behavior_Analysis.ipynb notebook**
 
