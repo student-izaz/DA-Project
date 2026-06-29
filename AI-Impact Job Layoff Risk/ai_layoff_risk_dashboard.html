@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Impact & Layoff Risk Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface-2: #f0efe9;
+    --border: rgba(0,0,0,0.09);
+    --text-primary: #111110;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --high: #d03b3b;
+    --high-bg: #fcebeb;
+    --medium: #d97706;
+    --medium-bg: #fef3c7;
+    --low: #0a7c3e;
+    --low-bg: #d1fae5;
+    --accent: #2a78d6;
+    --radius: 10px;
+    --series-high: #d03b3b;
+    --series-med: #d97706;
+    --series-low: #0a7c3e;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-title { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px;
+  }
+
+  main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* KPI Row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 6px; }
+  .kpi-value { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .kpi-high .kpi-value { color: var(--high); }
+  .kpi-accent .kpi-value { color: var(--accent); }
+
+  /* Section label */
+  .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px;
+    color: var(--text-muted); margin-bottom: 12px; margin-top: 28px;
+  }
+
+  /* Chart grid */
+  .chart-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-full { margin-bottom: 16px; }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .chart-card-header { margin-bottom: 4px; }
+  .chart-card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .chart-card-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; margin-top: 2px; }
+
+  .chart-wrap { position: relative; }
+
+  /* Risk badge */
+  .risk-badge {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 4px; letter-spacing: 0.3px;
+  }
+  .risk-high { background: var(--high-bg); color: var(--high); }
+  .risk-med  { background: var(--medium-bg); color: var(--medium); }
+  .risk-low  { background: var(--low-bg); color: var(--low); }
+
+  /* Insight callout */
+  .insight-strip {
+    background: #eef4fd;
+    border: 1px solid #c4d9f5;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #1a4f8a;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .insight-strip strong { font-weight: 600; }
+
+  /* Scatter legend */
+  .scatter-legend { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .scatter-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+  .scatter-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  footer {
+    text-align: center;
+    padding: 24px 32px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+  }
+
+  @media (max-width: 900px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
+    main { padding: 20px 16px; }
+    header { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-title">AI Impact & Layoff Risk</div>
+    <div class="header-sub">20,000 workers · 8 industries · 24 job roles</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#d03b3b"></div>High risk</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Medium risk</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0a7c3e"></div>Low risk</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card kpi-high">
+      <div class="kpi-label">High layoff risk</div>
+      <div class="kpi-value">34%</div>
+      <div class="kpi-sub">of all 20,000 workers</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Most at-risk industry</div>
+      <div class="kpi-value" style="font-size:20px;margin-top:4px;">Manufacturing</div>
+      <div class="kpi-sub"><span class="risk-badge risk-high">48% high risk</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Safest industry</div>
+      <div class="kpi-value" style="font-size:20px;margin-top:4px;">Education</div>
+      <div class="kpi-sub"><span class="risk-badge risk-low">48% low risk</span></div>
+    </div>
+    <div class="kpi-card kpi-accent">
+      <div class="kpi-label">Routine tasks: High vs Low risk</div>
+      <div class="kpi-value">75% vs 28%</div>
+      <div class="kpi-sub">avg routine task percentage</div>
+    </div>
+  </div>
+
+  <!-- PRIMARY DRIVER SECTION -->
+  <div class="section-label">Primary risk drivers</div>
+
+  <div class="insight-strip">
+    <span>💡</span>
+    <span><strong>Key finding:</strong> Routine task percentage is the strongest predictor of layoff risk in this dataset. Workers with high routine tasks also face 3× more automation of those tasks.</span>
+  </div>
+
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Routine task % by layoff risk</div>
+        <div class="chart-card-desc">The clearest signal — 75% vs 28%</div>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="routineChart" role="img" aria-label="Bar chart showing average routine task percentage by layoff risk level">Average routine task %: High risk 75.2, Medium 51.3, Low 28.5</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Tasks automated % by layoff risk</div>
+        <div class="chart-card-desc">High risk workers face 56% automation vs 19%</div>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="automatedChart" role="img" aria-label="Bar chart showing average tasks automated percentage by layoff risk level">Average tasks automated %: High 56, Medium 35.7, Low 19.5</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">AI training hours by layoff risk</div>
+        <div class="chart-card-desc">High risk workers get more training — yet remain at risk</div>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="trainingChart" role="img" aria-label="Bar chart showing average AI training hours by layoff risk level">Average AI training hours: High risk 20.2, Medium 11.4, Low 6.0</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- INDUSTRY SECTION -->
+  <div class="section-label">Industry breakdown</div>
+
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Layoff risk distribution by industry</div>
+        <div class="chart-card-desc">100% stacked bars — sorted by high risk ↓. Replaces the misleading "Sum of Score" bar chart.</div>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="industryStackedChart" role="img" aria-label="Stacked bar chart showing layoff risk distribution by industry, sorted by high risk percentage">Manufacturing has highest high risk at 48%, Education lowest at 20%</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">% High risk by industry</div>
+        <div class="chart-card-desc">Sorted ranking — easier to compare than raw sums</div>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="industryHighChart" role="img" aria-label="Horizontal bar chart showing percentage of high risk workers by industry, sorted descending">Manufacturing 48%, Logistics 41%, Retail 41% are highest risk industries</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKFORCE PROFILE SECTION -->
+  <div class="section-label">Workforce profile & risk</div>
+
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Layoff risk by job level</div>
+        <div class="chart-card-desc">Entry-level workers face nearly 4× the risk of senior workers</div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="jobLevelChart" role="img" aria-label="Grouped bar chart of layoff risk by job level">Entry level 44.5% high risk, Mid 30.7%, Senior only 11.5%</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Layoff risk by creativity group</div>
+        <div class="chart-card-desc">High creativity = strong protection. Low creativity = 74% high risk.</div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="creativityChart" role="img" aria-label="Bar chart of layoff risk by creativity requirement group">Low creativity: 74% high risk. High creativity: only 0.5% high risk.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Layoff risk by education level</div>
+        <div class="chart-card-desc">Higher education clearly reduces risk. High School: 45% high risk, PhD: 20%.</div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="educationChart" role="img" aria-label="Bar chart of high risk percentage by education level">High School 45.6% high risk, Bachelor's 35.1%, Master's 27.1%, PhD 20.1%</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP ROLES & EXPERIENCE -->
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Top 10 highest-risk job roles</div>
+        <div class="chart-card-desc">% high risk, sorted. Replaces the 24-bar equal-height chart.</div>
+      </div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="topRolesChart" role="img" aria-label="Horizontal bar chart of top 10 job roles by high risk percentage">Operator has highest layoff risk at 50%, followed by Production Supervisor at 48%</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">% High risk by experience group</div>
+        <div class="chart-card-desc">More experience gradually reduces risk, but the effect is modest.</div>
+      </div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="experienceChart" role="img" aria-label="Grouped bar chart of layoff risk by experience group">0-3 years experience has 39.8% high risk, declining to 29.3% for 12+ years</canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>20,000 workers · AI Impact & Layoff Risk Dataset · Redesigned dashboard</footer>
+
+<script>
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#898781';
+
+const HIGH = '#d03b3b';
+const MED  = '#d97706';
+const LOW  = '#0a7c3e';
+const HIGH_BG = 'rgba(208,59,59,0.12)';
+const MED_BG  = 'rgba(217,119,6,0.12)';
+const LOW_BG  = 'rgba(10,124,62,0.12)';
+
+const gridColor = 'rgba(0,0,0,0.07)';
+
+function baseOpts(xLabel, yLabel, xMax) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x !== undefined ? ctx.parsed.x : ctx.parsed.y}%` } } },
+    scales: {
+      x: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781' }, max: xMax },
+      y: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } }
+    }
+  };
+}
+
+/* 1. Routine Task % */
+new Chart(document.getElementById('routineChart'), {
+  type: 'bar',
+  data: {
+    labels: ['High risk','Medium risk','Low risk'],
+    datasets: [{
+      data: [75.2, 51.3, 28.5],
+      backgroundColor: [HIGH_BG, MED_BG, LOW_BG],
+      borderColor: [HIGH, MED, LOW],
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}% avg routine tasks` } } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 100 }
+    }
+  }
+});
+
+/* 2. Tasks Automated % */
+new Chart(document.getElementById('automatedChart'), {
+  type: 'bar',
+  data: {
+    labels: ['High risk','Medium risk','Low risk'],
+    datasets: [{
+      data: [56.0, 35.7, 19.5],
+      backgroundColor: [HIGH_BG, MED_BG, LOW_BG],
+      borderColor: [HIGH, MED, LOW],
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}% tasks automated` } } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 80 }
+    }
+  }
+});
+
+/* 3. AI Training Hours */
+new Chart(document.getElementById('trainingChart'), {
+  type: 'bar',
+  data: {
+    labels: ['High risk','Medium risk','Low risk'],
+    datasets: [{
+      data: [20.2, 11.4, 6.0],
+      backgroundColor: [HIGH_BG, MED_BG, LOW_BG],
+      borderColor: [HIGH, MED, LOW],
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} hrs avg` } } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + 'h' }, max: 28 }
+    }
+  }
+});
+
+/* 4. Industry Stacked 100% */
+const industries = ['Manufacturing','Logistics','Retail','Finance','Telecom','IT','Healthcare','Education'];
+const indHigh   = [48.2, 41.5, 40.7, 37.7, 35.2, 28.0, 20.8, 20.1];
+const indMed    = [32.3, 33.5, 34.2, 35.0, 31.9, 33.9, 31.8, 31.5];
+const indLow    = [19.5, 25.0, 25.1, 27.3, 32.9, 38.2, 47.4, 48.4];
+
+new Chart(document.getElementById('industryStackedChart'), {
+  type: 'bar',
+  data: {
+    labels: industries,
+    datasets: [
+      { label: 'High', data: indHigh, backgroundColor: HIGH, borderSkipped: false, borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 } },
+      { label: 'Medium', data: indMed, backgroundColor: MED, borderSkipped: false },
+      { label: 'Low', data: indLow, backgroundColor: LOW, borderSkipped: false, borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 } },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#898781', maxRotation: 35 } },
+      y: { stacked: true, grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 100 }
+    }
+  }
+});
+
+/* 5. Industry High Risk % horizontal */
+new Chart(document.getElementById('industryHighChart'), {
+  type: 'bar',
+  data: {
+    labels: [...industries].reverse(),
+    datasets: [{
+      data: [...indHigh].reverse(),
+      backgroundColor: indHigh.map(v => v > 40 ? HIGH_BG : v > 30 ? MED_BG : LOW_BG).reverse(),
+      borderColor: indHigh.map(v => v > 40 ? HIGH : v > 30 ? MED : LOW).reverse(),
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x}% high risk` } } },
+    scales: {
+      x: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 60 },
+      y: { grid: { display: false }, border: { display: false }, ticks: { color: '#52514e' } }
+    }
+  }
+});
+
+/* 6. Job Level grouped */
+new Chart(document.getElementById('jobLevelChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Entry', 'Mid', 'Senior'],
+    datasets: [
+      { label: 'High',   data: [44.5, 30.7, 11.5], backgroundColor: HIGH_BG, borderColor: HIGH, borderWidth: 1.5, borderRadius: 4 },
+      { label: 'Medium', data: [32.7, 34.2, 30.8], backgroundColor: MED_BG,  borderColor: MED,  borderWidth: 1.5, borderRadius: 4 },
+      { label: 'Low',    data: [22.8, 35.2, 57.7], backgroundColor: LOW_BG,  borderColor: LOW,  borderWidth: 1.5, borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%` } } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 70 }
+    }
+  }
+});
+
+/* 7. Creativity */
+new Chart(document.getElementById('creativityChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Low creativity','Medium creativity','High creativity'],
+    datasets: [
+      { label: 'High',   data: [74.0, 22.9, 0.5],  backgroundColor: HIGH_BG, borderColor: HIGH, borderWidth: 1.5, borderRadius: 4 },
+      { label: 'Medium', data: [23.7, 50.3, 21.0], backgroundColor: MED_BG,  borderColor: MED,  borderWidth: 1.5, borderRadius: 4 },
+      { label: 'Low',    data: [2.4,  26.7, 78.5], backgroundColor: LOW_BG,  borderColor: LOW,  borderWidth: 1.5, borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%` } } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 100 }
+    }
+  }
+});
+
+/* 8. Education */
+new Chart(document.getElementById('educationChart'), {
+  type: 'bar',
+  data: {
+    labels: ['High School','Bachelor\'s','Master\'s','PhD'],
+    datasets: [{
+      label: '% High risk',
+      data: [45.6, 35.1, 27.1, 20.1],
+      backgroundColor: [HIGH_BG, 'rgba(208,59,59,0.08)', MED_BG, LOW_BG],
+      borderColor: [HIGH, '#d97706', MED, LOW],
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}% high risk` } } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 60 }
+    }
+  }
+});
+
+/* 9. Top 10 Roles */
+const roles = ['Operator','Prod. Supervisor','Quality Engineer','Inventory Analyst','Dispatcher','Warehouse Mgr','Supply Chain Analyst','Sales Associate','Accountant','Auditor'];
+const rolesHigh = [50.2,48.3,46.0,44.6,42.1,41.3,41.2,40.6,39.6,37.4];
+
+new Chart(document.getElementById('topRolesChart'), {
+  type: 'bar',
+  data: {
+    labels: [...roles].reverse(),
+    datasets: [{
+      data: [...rolesHigh].reverse(),
+      backgroundColor: rolesHigh.map(v => v >= 45 ? HIGH_BG : MED_BG).reverse(),
+      borderColor: rolesHigh.map(v => v >= 45 ? HIGH : MED).reverse(),
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x}% high risk` } } },
+    scales: {
+      x: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, min: 30, max: 60 },
+      y: { grid: { display: false }, border: { display: false }, ticks: { color: '#52514e', font: { size: 11 } } }
+    }
+  }
+});
+
+/* 10. Experience */
+new Chart(document.getElementById('experienceChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0–3 yrs','4–7 yrs','8–12 yrs','12+ yrs'],
+    datasets: [
+      { label: 'High',   data: [39.8, 32.8, 31.4, 29.3], backgroundColor: HIGH_BG, borderColor: HIGH, borderWidth: 1.5, borderRadius: 4 },
+      { label: 'Medium', data: [32.8, 33.3, 33.2, 32.7], backgroundColor: MED_BG,  borderColor: MED,  borderWidth: 1.5, borderRadius: 4 },
+      { label: 'Low',    data: [27.4, 33.9, 35.4, 38.0], backgroundColor: LOW_BG,  borderColor: LOW,  borderWidth: 1.5, borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%` } } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: '#898781' } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: '#898781', callback: v => v + '%' }, max: 55 }
+    }
+  }
+});
+</script>
+</body>
+</html>
